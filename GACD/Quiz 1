@@ -39,6 +39,22 @@ install.packages("data.table")
 
 library("data.table")
 
-DT = fread("getdata-data-ss06pid.csv")
+DT = fread('getdata_data_ss06pid.csv')
 
-str(DT)DT[,mean(pwgtp15),by=SEX]
+sapply(split(DT$pwgtp15,DT$SEX),mean)
+
+rowMeans(DT)[DT$SEX==1]; rowMeans(DT)[DT$SEX==2] # incorrect
+
+mean(DT$pwgtp15,by=DT$SEX) # incorrect
+
+DT[,mean(pwgtp15),by=SEX] # slow
+
+tapply(DT$pwgtp15,DT$SEX,mean) # slow
+
+mean(DT[DT$SEX==1,]$pwgtp15); mean(DT[DT$SEX==2,]$pwgtp15) # very slow
+
+
+
+
+
+
