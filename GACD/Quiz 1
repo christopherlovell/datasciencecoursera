@@ -1,0 +1,44 @@
+
+
+data <- read.csv('getdata_data_ss06hid.csv')
+
+head(data$VAL)
+
+sum(!is.na(subset(data,VAL==24)$VAL))
+
+
+
+library(xslx)
+
+NGAP <- read.xlsx
+
+
+
+# Question 4
+
+library(XML)
+
+fileUrl4 <- "http://d396qusza40orc.cloudfront.net/getdata%2Fdata%2Frestaurants.xml"
+
+doc4 = xmlTreeParse(fileUrl4, useInternal=TRUE)
+
+rootNode <- xmlRoot(doc4)
+
+
+# extract menu item names
+
+zipcodes = xpathSApply(rootNode,"//zipcode",xmlValue)
+
+length(zipcodes)
+table(zipcodes==21231)
+
+
+# Question 5
+
+install.packages("data.table")
+
+library("data.table")
+
+DT = fread("getdata-data-ss06pid.csv")
+
+str(DT)DT[,mean(pwgtp15),by=SEX]
