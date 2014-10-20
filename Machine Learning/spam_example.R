@@ -18,3 +18,14 @@ set.seed(334)
 modelFit <- train(type ~.,data=training,method="glm")
 modelFit
 
+
+####
+
+predictions <- predict(modelFit,newdata=testing)
+predictions
+
+####
+
+confusionMatrix(predictions,testing$type)
+
+
