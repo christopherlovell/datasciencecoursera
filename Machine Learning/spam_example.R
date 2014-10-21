@@ -28,4 +28,31 @@ predictions
 
 confusionMatrix(predictions,testing$type)
 
+####
 
+# k-fold example
+
+set.seed(32323)
+folds <- createFolds(y=spam$type,k=10,list=TRUE,returnTrain=FALSE)
+
+sapply(folds,length)
+
+folds[[2]][1:10]
+
+# Resampling example
+
+folds <- createResample(y=spam$type,times=10,list=TRUE)
+
+sapply(folds,length)
+
+folds[[2]][1:10]
+
+# Time slices example
+
+tme <- 1:1000
+folds<- createTimeSlices(y=tme,initialWindow=20,horizon=10)
+
+names(folds)
+
+folds$train[[2]]
+folds$test[[2]]
