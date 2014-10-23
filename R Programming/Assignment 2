@@ -1,0 +1,52 @@
+# R Programming - Assignment 2 - Matrix Inversion
+
+## Creates a special matrix object that caches its inverse
+makeCacheMatrix <- function(m = matrix()) {
+  # initialise variable to store inverse 
+  x <- NULL
+  
+  # set the value of the matrix
+  set <- function(y) {
+    m <<- y
+    x <<- NULL
+  }
+  
+  # get the value of the matrix
+  get <- function() m
+  
+  # set the inverse of the matrix
+  setinverse <- function(inverse) x <<- inverse
+  
+  # get the inverse of the matrix from cache
+  getinverse <- function() x
+  
+  # list of methods
+  list(set = set, get = get,
+       setinverse = setinverse,
+       getinverse = getinverse)
+}
+
+## function to calculate the inverse of the special matrix object produced previously
+cacheSolve <- function(x, ...) {
+  # get mean from cache
+  m <- x$getinverse()
+  
+  # check it exists, if so return
+  if(!is.null(m)) {
+    message("getting cached data")
+    return(m)
+  }
+  
+  # ..else get matrix
+  data <- x$get()
+  
+  # calculate inverse of matrix
+  m <- solve(data)
+  
+  # store inverse in cache
+  x$setinverse(m)
+  
+  # return inverse of matrix
+  m
+}
+
