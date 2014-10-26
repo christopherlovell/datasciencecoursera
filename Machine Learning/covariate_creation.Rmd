@@ -2,7 +2,7 @@
 title: "Covariate Creation"
 author: "Christopher Lovell"
 date: "Sunday, October 26, 2014"
-output: html_document
+output: pdf_document
 ---
 
 
@@ -17,7 +17,7 @@ Feature selection can be automated, but should be done with caution.
 ### Tidy Covariates -> new covariates
 Features you've already created on the dataset, transformed to make them more useful. 
 
-The original building of the covarites should only be performed on the training set (otherwise you're at risk of overfitting).
+The original building of the covariates should only be performed on the training set (otherwise you're at risk of overfitting).
 
 ## Example
 First load the libraries and data, then split the Wage dataset in to training and testing sets.
