@@ -4,7 +4,21 @@
 
 library(ISLR)
 library(ggplot2)
-library(caret)
+if(!require(minqa)){
+  install.packages("minqa")
+}
+if(!require(caret)){
+  install.packages("caret")
+}
+if(!require(gridExtra)){
+  install.packages("gridExtra")
+}
+if(!require(Hmisc)){
+  install.packages("Hmisc")
+}
+if(!require(splines)){
+  install.packages("splines")
+}
 
 data(Wage)
 summary(Wage)
@@ -36,7 +50,7 @@ qq + geom_smooth(method='lm',formula=y~x)
 # separates education classes, and fits a linear model
 # different relationships for age visible 
 
-library(Hmisc)
+
 # making factors
 cutwage <- cut2(training$wage,g=3)
 table(cutwage)
@@ -49,7 +63,6 @@ p1
 # shows a clearer trend with age
 
 # boxplots with points overlayed
-library(gridExtra)
 p2 <- qplot(cutwage,age,data=training,fill=cutwage,
             geom=c("boxplot","jitter"))
 grid.arrange(p1,p2,ncol=2)
@@ -69,5 +82,37 @@ qplot(wage,colour=education,data=training,geom="density")
 # shows where the bulk of the data is
 # also identifies the outgroup
 # easier to overlay multiple plots with this method
+
+###
+### COVARIATE CREATION
+###
+
+table(training$jobclass)
+# create dummy vars for jobclass that avoid text based division
+dummies<-dummyVars(wage ~ jobclass,data=training)
+head(predict(dummies,newdata=training))
+
+# removing zero covariates
+nsv<-nearZeroVar(training,saveMetrics=T)
+nsv
+# can see the percentage of unique values for a particular variable
+# freqRatio shows number of categories
+# tells you which predictors to throw out right away
+
+# fit polynomial regression
+# df specifies degree
+bsBasis<- bs(training$age,df=3)
+bsBasis
+
+# fit curve with 'splines' package
+lm1<-lm(wage ~ bsBasis,data=training)
+plot(training$age,training$wage,pch=19,cex=0.5)
+points(training$age,predict(lm1,newdata=training),col="red",pch=19,cex=0.5)
+
+# apply to test set using predictors(?) from training
+predict(bsBasis,age=testing$age)
+
+
+
 
 
