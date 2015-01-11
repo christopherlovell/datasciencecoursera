@@ -1,0 +1,238 @@
+---
+title: "Human & economic consequences of severe storm events in the US"
+author: "Christopher Lovell"
+date: "Sunday, December 21, 2014"
+output:
+  html_document:
+    keep_md: yes
+  pdf_document: default
+---
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+wd<-"C:\\Users\\Chris\\Documents\\Data Science Files\\datasciencecoursera\\Reproducible Research"
+
+setwd(wd)
+
+library(tm)
+library(reshape)
+library(ggplot2)
+
+library(gridExtra)
+```
+
+We wish to answer the following two questions in this analysis:
+1. Across the United States, which types of events are most harmful with respect to population health?
+2. Across the United States, which types of events have the greatest economic consequences?
+
+This should act as supporting material or a set of recommendations to policy makers on the events of highest priorities when wishing to address the human and economic cost of storms. 
+
+We will do this using the NOAA Storm Data. This contains details on all recorded storm events between 1950 through to 2011.
+
+# Data Processing
+
+```{r cache=TRUE}
+data<-read.csv("..//input//repdata-data-StormData.csv")
+```
+
+Let's look at the summary information for our data set:
+
+```{r}
+summary(data)
+```
+
+variable that distinguishes events: EVTYPE
+
+variables that summarise effect on population health: FATALITIES, INJURIES
+
+variables that summarise effect on economy: PROPDMG,CROPDMG
+
+Let's look at a subset on what events we have:
+```{r}
+tail(sort(unique(data$EVTYPE)),20)
+```
+
+There are `r length(unique(data$EVTYPE))` in total, and some of these are repeated. First we set all to uppercase to remove any case differences
+
+```{r}
+data$EVTYPE<-toupper(data$EVTYPE)
+
+```
+
+There are still `r length(unique(data$EVTYPE))` event types, with lots of repeated events due to numbers and punctuation. We now try to reduce that number by replacing hyphons and slashes with space (rather than removing outright, as this will implicitly concatenate the separated strings). Then remove all numbers and punctuation.
+
+```{r}
+data$EVTYPE<-gsub(c("/","\\","^{-}")," ",data$EVTYPE)
+
+data$EVTYPE<-removePunctuation(data$EVTYPE)
+data$EVTYPE<-removeNumbers(data$EVTYPE)
+
+data$EVTYPE.group<-data$EVTYPE
+```
+
+Still `r length(unique(data$EVTYPE))` events left, but better than before. We could do dome manual fitering of the data, combining different groups, but I ran out of time!
+
+```{r echo=FALSE}
+
+# data[data$EVTYPE %in% c("WINTER WEATHER",
+#                       "WINTER WEATHER MIX",
+#                       "WINTERY MIX",
+#                       "WINTRY MIX"),]$EVTYPE.group<-"WINTER WEATHER"
+# 
+# data[data$EVTYPE %in% c("WILDFIRE",
+#                       "WILDFIRES",
+#                       "WILD FIRES",
+#                       "WILD FOREST FIRE",
+#                       "WILD FOREST FIRES"),]$EVTYPE.group<-"WILDFIRE"
+# 
+# data[data$EVTYPE %in% c("WINTER STORM",
+#                       "WINTER STORM HIGH WIND",
+#                       "WINTER STORM HIGH WINDS",
+#                       "WINTER STORMS"),]$EVTYPE.group<-"WINTER STORM"
+# 
+# sort(unique(data$EVTYPE.group))
+
+```
+
+# Results
+
+### Health
+
+```{r}
+summary(data$FATALITIES)
+summary(data$INJURIES)
+```
+
+We can see that both fatalities and injuries have a zero value 75th percentile, indicating 75% of all values are injury / fatality free (within each distinct group).
+
+To get the break down on event type we create two dataframes for injuries and fatalities, aggregating the counts within each across event types.
+
+```{r}
+# count number of injuries for each event type
+injuries.tot<-aggregate(data$INJURIES,by=list(data$EVTYPE.group),FUN = sum)
+# order them
+injuries.tot<-with(injuries.tot,injuries.tot[order(x,decreasing = T),])
+injuries.tot$ID<-"injuries"
+
+# count number of injuries for each event type
+fatalities.tot<-aggregate(data$FATALITIES,by=list(data$EVTYPE.group),FUN = sum)
+# order them
+fatalities.tot<-with(fatalities.tot,fatalities.tot[order(x,decreasing = T),])
+fatalities.tot$ID<-"fatalities"
+```
+
+Now create a merged data frame of both, grouped by event type, and sum the injuries and fatalities values to give a total casualties value.
+
+```{r}
+health.totals<-merge(injuries.tot,
+                 fatalities.tot,
+                 by="Group.1",
+                 all=T,
+                 suffixes = c(".injuries",".fatalities"))
+
+# compute fatalities / injuries totals
+health.totals$all<-health.totals$x.injuries+health.totals$x.fatalities
+```
+
+First we order by fatalities then total casualties, as fatalities are of a higher cost than injuries. We then order by total casualties to ensure we are not missing any high casualty events. Then subset to get only the top 10 and plot stacked bars colour coded by casualty type. Here we plot both the top fatalities and casualties side by side and compare. 
+
+```{r}
+health.totals<-health.totals[order(health.totals$x.fatalities,
+                                   decreasing = T),]
+
+# subset needed columns
+health.totals.top10<-subset(health.totals[1:10,],select = c("Group.1",
+                                                     "x.injuries",
+                                                     "x.fatalities"))
+# melt in to a distinct three column list
+health.totals.top10<-melt(health.totals.top10,id="Group.1")
+
+health1<- ggplot(health.totals.top10,
+       aes(x=reorder(Group.1,-value),y=value,fill=variable)) + geom_bar(stat="identity") + ggtitle("Health Impact, ordered by fatalities") + xlab("Event")
+```
+
+```{r}
+health.totals<-health.totals[order(health.totals$all,
+                                   decreasing = T),]
+
+# subset needed columns
+health.totals.top10<-subset(health.totals[1:10,],select = c("Group.1",
+                                                     "x.injuries",
+                                                     "x.fatalities"))
+# melt in to a distinct three column list
+health.totals.top10<-melt(health.totals.top10,id="Group.1")
+
+health2<-ggplot(health.totals.top10,
+       aes(x=reorder(Group.1,-value),y=value,fill=variable)) + geom_bar(stat="identity")  + ggtitle("Health Impact, ordered by total casualties") + xlab("Event")
+
+grid.arrange(health1,health2,nrow=2)
+```
+
+We can see in the first plot that Tornadoes have the highest number of fatalities, but also the greatest number of casualties. The second plot confirms that no other events have a high casualty number.
+
+This confirms that tornadoes are the highest cost events in terms of both fatalities and overall casualties. We recommend that policy makers focus their efforts and funding on preventing and attending to these kinds of events if they wish to reduce their human cost.
+
+### Economy
+
+```{r}
+summary(data$PROPDMG)
+summary(data$CROPDMG)
+```
+
+Crop damage events make up less than 75% of all events, whereas property damage events make up a larger proportion of all events.
+
+We now use the same data breakdown method as for human cost, but filtering by economic cost metrics.
+
+```{r}
+property.tot<-aggregate(data$PROPDMG,by=list(data$EVTYPE.group),FUN = sum)
+# order them
+property.tot<-with(property.tot,property.tot[order(x,decreasing = T),])
+property.tot$ID<-"property"
+
+# count number of injuries for each event type
+crops.tot<-aggregate(data$CROPDMG,by=list(data$EVTYPE.group),FUN = sum)
+# order them
+crops.tot<-with(crops.tot,crops.tot[order(x,decreasing = T),])
+crops.tot$ID<-"crops"
+
+econ.totals<-merge(property.tot,
+                 crops.tot,
+                 by="Group.1",
+                 all=T,
+                 suffixes = c(".crops",".property"))
+
+# compute property / crop totals
+econ.totals$all<-econ.totals$x.property+econ.totals$x.crops
+```
+
+Here we order by total economic damage, as we assume property and economic damage is of equal unit value.
+
+```{r}
+econ.totals<-econ.totals[order(econ.totals$all,decreasing = T),]
+
+econ.totals.top10<-subset(econ.totals[1:10,],select = c("Group.1",
+                                                   "x.crops",
+                                                   "x.property"))
+
+econ.totals.top10<-melt(econ.totals.top10,id="Group.1")
+
+ggplot(econ.totals.top10,
+       aes(x=reorder(Group.1,-value),y=value,fill=variable)) + geom_bar(stat="identity") + ggtitle("Total Economic Impact") + xlab("Event")
+```
+
+The plot shows that tornadoes are the highest value events in terms of economic cost. But what's the breakdown between the two types?
+
+```{r}
+econ1 <- ggplot(econ.totals.top10[econ.totals.top10$variable=="x.crops",],
+       aes(x=reorder(Group.1,-value),y=value,fill=variable)) + geom_bar(stat="identity")  + ggtitle("Crop cost") + xlab("Event")
+
+econ2 <- ggplot(econ.totals.top10[econ.totals.top10$variable=="x.property",],
+       aes(x=reorder(Group.1,-value),y=value,fill=variable)) + geom_bar(stat="identity")  + ggtitle("Property cost") + xlab("Event")
+
+grid.arrange(econ1,econ2,nrow=2)
+```
+This reveals that property costs are highest in hail events. However, since crop damage is of an order of magnitude higher economic cost this dominates the top 10 when considering the two together.
+
+
+# Summary
+
+Tornadoes are both the highest cost events in human and economic terms. However, since this note serves to inform policy decision makers it must raise the fact that hail is the highest economic cost against property. This is, however, an order of magnitude smaller than the equivalent top 10 costs against crops.
