@@ -1,0 +1,20 @@
+---
+title: "Statistical Inference - Assignment part 2"
+author: "Christopher Lovell"
+date: "Sunday, January 25, 2015"
+output: html_document
+---
+
+# Statistical Inference Course Project - Part 2
+
+```{r}
+library(datasets)
+data(ToothGrowth)
+
+str(ToothGrowth)
+
+summary(ToothGrowth)
+
+fit <- lm(data = ToothGrowth,len ~ dose)
+summary(fit)
+```

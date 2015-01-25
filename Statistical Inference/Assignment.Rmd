@@ -1,102 +1,94 @@
 ---
-title: "Statistical Inference - Assignment"
+title: "Statistical Inference - Assignment part 1"
 author: "Christopher Lovell"
 date: "Wednesday, January 21, 2015"
 output: html_document
 ---
 
-- Title (give an appropriate title) and Author Name
+# Statistical Inference Course Project - Part 1
+In this project we re going to cimluate the exponential distribution, and use the results to compare the properties of the sample and underlying distributions.
 
-- Overview: In a few (2-3) sentences explain what is going to be reported on.
 
-- Simulations: Include English explanations of the simulations you ran, with the accompanying R code. Your explanations should make clear what the R code accomplishes.
-
-- Sample Mean versus Theoretical Mean: Include figures with titles. In the figures, highlight the means you are comparing. Include text that explains the figures and what is shown on them, and provides appropriate numbers.
-
-- Sample Variance versus Theoretical Variance: Include figures (output from R) with titles. Highlight the variances you are comparing. Include text that explains your understanding of the differences of the variances.
-
-- Distribution: Via figures and text, explain how one can tell the distribution is approximately normal.
-
+## Set Up
+First we need to set up our environment. We load the ggplot2 library for doing our visualisations, and initialise our random seed so that our results are consistent on repeat.
 ```{r}
-# initialise 
+if(!require(ggplot2)){
+  install.packages("ggplot2")
+}
+
+set.seed(1)
+```
+
+## Simulations
+
+First we initialise lambda and our simulation values, where `N` is the total number of simulations, and `n` is the sample size.
+```{r} 
 lambda=0.2
-n=1000
+N=1000
+n=40
+```
 
-# theoretical distribution values
+We can then create an `N*n` matrix of our simulation results.
+```{r}
+data<-matrix(rexp(N*n,lambda), N)
+```
+
+## Sample Mean versus Theoretical Mean
+
+The theoretical mean is given by $\mu=1/\lambda$. 
+```{r}
 mean = 1/lambda
-sd = 1/lambda
-
-
-data=vector()
-i=0
-while(i<1000){
-  # sample exponential distribution
-  append(data,mean(rexp(40, lambda)))
-  i=i+1
-}
-
-# mean of the sample
-mean(data)
-mean
-
-# variance of the sample
-sum((data-mean(data))^2)/(n-1)
-sd^2
 ```
+
+We can compare this to the sample mean by plotting the distribution of sample means for each simulation, and compare to the theoretical mean shown in red.
+```{r}
+sample_means<-apply(data,1,function(x) mean(x))
+sample_mean<-mean(sample_means)
+
+hist(sample_means,xlab = "Sample mean distribution",breaks=seq(3,9,0.2))
+abline(v=mean,col="red")
+```
+
+The centre of the distribution alines with the theoretical mean.
+
+*Include figures with titles. In the figures, highlight the means you are comparing. Include text that explains the figures and what is shown on them, and provides appropriate numbers.*
+
+## Sample Variance versus Theoretical Variance
+
+The theoretical variance is given by $Var(X)=\frac{1}{\lambda\sqrt n}$. 
+```{r}
+sd = (1/lambda)/(n^0.5)
+var=sd^2
+```
+
+We can compare this to the sample variance by computing the variance across the sample means.
+```{r eval=FALSE}
+var(sample_means)
+``` 
+This gives us a sample variance of `r var(sample_means)` which is similar to the theoretical variance of `r var`.
+
+## Distribution
+We can tell that the distribution is approximately normal by plotting a normal curve, with mean and standard deviation parameters taken from our theoretical model, over our sample distribution.
 
 ```{r}
-for (n in c(1, 10, 20)){
- print(n)
-}
+sample_means<-as.data.frame(sample_means)
+names(sample_means)<-"RowMeans"
 
+# histogram of 1000 averages of 40 random variables 
+cp<-ggplot(sample_means,aes(x=sample_means))
+cp<-cp+geom_histogram(binwidth = lambda,fill="dark grey",color="white",aes(y = ..density..))
+cp<-cp+stat_function(fun=dnorm,args=list(mean=mean,sd=sd))
+cp<-cp+geom_vline(xintercept=mean,color="red")
+cp<-cp+geom_vline(xintercept=sample_mean,color="blue")
+cp
 ```
 
-
+## Confidence Intervals
 ```{r}
-## This script plots a histogram of sample means from a known population and compares this
-## distribution against the theoretical Standard Error of the Means distribution.
- 
-## You can play around with sample size (n) to see how the standard error distribution changes.
- 
-rm(list=ls())
- 
-var_ <- new.env()
-n<-20            ## Sample n individuals at a time
-p_mean<-0        ## Population mean
-p_sd<-1            ## Population standard deviation
-N<-500           ## Number of times the experiment (sampling) is replicated
- 
-pdf('SE.pdf')
- 
-for(i in 1:N)                                ## do the experiment N times
-{
-smp<-rnorm(n,p_mean,p_sd)                 ## sample n data points from the population
- 
-var_$x_bar<-c(var_$x_bar,mean(smp))         ## keep track of the mean (x_bar) from each sample
- 
-hist(var_$x_bar,probability=TRUE,col="red",xlim=c(-4,4),xlab="x / x_bar",main="",ylim=c(0,2.2))  # Plot a histogram of x_bar values
-#points(mean(smp),0,pch=19,cex=1.5,col='black')
-#curve(dnorm(x,p_mean,p_sd/sqrt(n)),lwd=3,add=TRUE)
- 
-#text(2.5,1.75,labels=paste('sd/sqrt(n) = ',round(p_sd/sqrt(n),2),sep=''))
-#text(2.5,1.5,labels=paste('standard deviation of\nsample means = ',round(sd(var_$x_bar),2),sep='') )
- 
-#curve(dnorm(x,p_mean,p_sd),main="",ylab="",xlim=c(-4,4),xlab="X",col="blue",lwd=3,add=TRUE) ## Plot the sample
- 
-#text(2.5,0.5,labels=paste('# of means drawn = ',i,sep=''))
-#text(2.5,0.35,labels=paste('Sample size (n) = ',n,sep=''))
-#points(smp,rep(0,n),pch=19,cex=1.5,col='purple')
-#abline(v= mean(smp),col='purple',lwd=4)
- 
-#legend("topleft",legend=c('Sample points','Population Distribution','Sample mean','Theoretical SE','Empirical SE'),
-#lty=c(0,1,1,1,1,1,1),lwd=c(0,3,3,3,3,3,3),pch=c(16,NA,NA,NA,NA,NA,NA),col=c('purple','blue','purple','black','red'))
- 
-print(paste(i," of ",N))
-}
-dev.off()
- 
-############################################################################################
-#################################################
+#ci <- mean + (c(-1,1)*1.96*sd/n)
+#sample_ci <- sample_mean + (c(-1,1)*1.96*sample_sd/n)
+
 
 ```
+
 
